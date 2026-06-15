@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YT Summarizer</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>YouTube Summarizer</h1>
+      <p class="subtitle">Paste a YouTube URL to get an AI-generated summary</p>
+
+      <div class="input-group">
+        <input
+          type="text"
+          id="url-input"
+          placeholder="https://www.youtube.com/watch?v=..."
+        />
+        <button id="submit-btn">Summarize</button>
+      </div>
+
+      <div id="error-msg" class="error hidden"></div>
+
+      <div id="result-section" class="result-section hidden">
+        <h2>Summary</h2>
+        <div id="summary-output" class="summary-box"></div>
+      </div>
+
+      <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <p>Fetching and summarizing...</p>
+      </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>
