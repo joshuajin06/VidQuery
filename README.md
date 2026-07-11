@@ -39,3 +39,6 @@ The backend runs on `http://localhost:8000`. The frontend is hardcoded to that a
 
 - **Backend:** FastAPI + `youtube-transcript-api` + Groq (LLaMA 3)
 - **Frontend:** Vanilla HTML/CSS/JS
+
+## Future:
+- **Chatting with model and comparison between videos**
