@@ -1,5 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
-
 from openai import OpenAI
 
 from core.config import GROQ_API_KEY
@@ -72,12 +70,11 @@ def split_into_chunks(text, chunk_chars, overlap_chars):
         start = space + 1
 
 
-def summarize_text(transcript):
+def summarize_text(transcript, on_progress=None):
   if len(transcript) <= MAX_TRANSCRIPT_CHARS:
     return _complete(SINGLE_PASS_PROMPT, transcript)
 
-  # Map: summarize each chunk independently (concurrently, since the endpoint
-  # runs in a worker thread and these are plain blocking HTTP calls).
+  # Map: summarize each chunk in turn, reporting progress as each one lands.
   # If even the combined summaries are too long, collapse them the same way.
   text = transcript
   while len(text) > MAX_TRANSCRIPT_CHARS:
@@ -86,12 +83,19 @@ def summarize_text(transcript):
       f"Part {i} of {len(chunks)}:\n{chunk}"
       for i, chunk in enumerate(chunks, start=1)
     ]
-    with ThreadPoolExecutor(max_workers=MAX_CONCURRENT_REQUESTS) as pool:
-      part_summaries = list(pool.map(lambda part: _complete(MAP_PROMPT, part), labeled))
+
+    part_summaries = list()
+    for i, part in enumerate(labeled):
+      part_summaries.append(_complete(MAP_PROMPT, part))
+      if on_progress: 
+        on_progress(i+1, len(labeled))
+
     combined = "\n\n".join(part_summaries)
+
     if len(combined) >= len(text):
       # Summarizing failed to shrink the text; truncate rather than loop forever.
       combined = combined[:MAX_TRANSCRIPT_CHARS]
+      
     text = combined
 
   # Reduce: merge the section summaries into the final answer.

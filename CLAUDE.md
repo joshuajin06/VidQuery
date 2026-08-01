@@ -19,20 +19,3 @@ The frontend is static HTML/CSS/JS in `frontend/` — open `frontend/index.html`
 
 Requires a `.env` file with an OpenAI API key. Config is loaded in `core/config.py`.
 
-## Architecture
-
-```
-main.py              — FastAPI app, CORS middleware, mounts routers
-routers/summarize.py — POST /summarize endpoint (stub)
-services/transcript.py — fetches YouTube transcript via youtube-transcript-api
-services/summarizer.py — calls OpenAI to summarize the transcript text
-models/schemas.py    — Pydantic models (SummarizeRequest, response shape)
-core/config.py       — loads env vars (OpenAI key, etc.)
-frontend/            — static UI; js/api.js POSTs to /summarize, js/ui.js handles DOM
-```
-
-**Request flow:** `POST /summarize {url}` → router calls `transcript.py` to fetch transcript → passes text to `summarizer.py` → returns `{summary}` to frontend.
-
-## Current State
-
-Most service files (`routers/summarize.py`, `services/transcript.py`, `services/summarizer.py`, `core/config.py`, `models/schemas.py`) are stubs — the framework is scaffolded but implementation is incomplete. The CORS origin in `main.py` is misconfigured (`https://localhost:8000` should be `http://localhost:8000` to match the frontend).
