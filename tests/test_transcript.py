@@ -1,12 +1,19 @@
 import pytest
 
 import services.transcript as transcript_service
-from services.transcript import extract_video_id, fetch_transcript
+from services.transcript import extract_video_id, fetch_transcript, fetch_transcript_chunks
 
 
 class FakeSnippet:
     def __init__(self, text):
         self.text = text
+
+
+class FakeTimedSnippet:
+    def __init__(self, text, start, duration):
+        self.text = text
+        self.start = start
+        self.duration = duration
 
 
 # --- extract_video_id: URLs that should work ---
@@ -93,3 +100,72 @@ def test_invalid_url_raises_before_any_network_call(monkeypatch):
     monkeypatch.setattr(transcript_service.ytt_api, "fetch", explode)
     with pytest.raises(ValueError):
         fetch_transcript("https://www.youtube.com/watch")
+
+
+# --- fetch_transcript_chunks ---
+
+def test_single_chunk_when_under_window(monkeypatch):
+    snippets = [
+        FakeTimedSnippet("hello", start=0, duration=10),
+        FakeTimedSnippet("world", start=10, duration=10),
+    ]
+    monkeypatch.setattr(transcript_service.ytt_api, "fetch", lambda video_id: snippets)
+
+    chunks = fetch_transcript_chunks("https://www.youtube.com/watch?v=dQw4w9WgXcQ", window_seconds=45)
+
+    assert len(chunks) == 1
+    assert chunks[0] == {"text": "hello world", "start": 0, "end": 20}
+
+
+def test_splits_into_multiple_chunks_once_window_exceeded(monkeypatch):
+    # window=10: each 10s snippet individually pushes elapsed time to exactly
+    # its own duration, which is not > 10, so nothing flushes... except each
+    # snippet's own duration equals the window, so each one flushes solo.
+    snippets = [
+        FakeTimedSnippet("a", start=0, duration=10),
+        FakeTimedSnippet("b", start=10, duration=10),
+        FakeTimedSnippet("c", start=20, duration=10),
+    ]
+    monkeypatch.setattr(transcript_service.ytt_api, "fetch", lambda video_id: snippets)
+
+    chunks = fetch_transcript_chunks("https://www.youtube.com/watch?v=dQw4w9WgXcQ", window_seconds=15)
+
+    assert len(chunks) == 2
+    assert chunks[0] == {"text": "a b", "start": 0, "end": 20}
+    assert chunks[1] == {"text": "c", "start": 20, "end": 30}
+
+
+def test_single_snippet_longer_than_window_flushes_alone(monkeypatch):
+    snippets = [
+        FakeTimedSnippet("a", start=0, duration=100),  # duration alone exceeds window
+        FakeTimedSnippet("b", start=100, duration=5),
+        FakeTimedSnippet("c", start=105, duration=5),
+    ]
+    monkeypatch.setattr(transcript_service.ytt_api, "fetch", lambda video_id: snippets)
+
+    chunks = fetch_transcript_chunks("https://www.youtube.com/watch?v=dQw4w9WgXcQ", window_seconds=45)
+
+    assert len(chunks) == 2
+    assert chunks[0] == {"text": "a", "start": 0, "end": 100}
+    assert chunks[1] == {"text": "b c", "start": 100, "end": 110}
+
+
+def test_empty_transcript_returns_no_chunks(monkeypatch):
+    monkeypatch.setattr(transcript_service.ytt_api, "fetch", lambda video_id: [])
+
+    chunks = fetch_transcript_chunks("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+
+    assert chunks == []
+
+
+def test_chunks_preserve_start_and_end_timestamps(monkeypatch):
+    snippets = [
+        FakeTimedSnippet("intro", start=5.5, duration=2.5),
+        FakeTimedSnippet("more", start=8.0, duration=3.0),
+    ]
+    monkeypatch.setattr(transcript_service.ytt_api, "fetch", lambda video_id: snippets)
+
+    chunks = fetch_transcript_chunks("https://www.youtube.com/watch?v=dQw4w9WgXcQ", window_seconds=45)
+
+    assert chunks[0]["start"] == 5.5
+    assert chunks[0]["end"] == 11.0
