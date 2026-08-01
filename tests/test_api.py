@@ -11,7 +11,7 @@ FRONTEND_ORIGIN = "http://localhost:5500"
 
 def stub_services(monkeypatch, transcript="a transcript", summary="a summary"):
     monkeypatch.setattr(summarize_router, "fetch_transcript", lambda url: transcript)
-    monkeypatch.setattr(summarize_router, "summarize_text", lambda text: summary)
+    monkeypatch.setattr(summarize_router, "summarize_text", lambda text, on_progress: summary)
 
 
 # --- run_summarize_job: the worker, tested directly (no HTTP involved) ---
@@ -27,9 +27,30 @@ def test_worker_marks_job_done_with_summary(monkeypatch):
     assert result.summary == "the summary"
 
 
+def test_worker_reports_progress_via_on_progress(monkeypatch):
+    def fake_summarize(text, on_progress):
+        on_progress(1, 3)
+        on_progress(2, 3)
+        on_progress(3, 3)
+        return "the summary"
+
+    monkeypatch.setattr(summarize_router, "fetch_transcript", lambda url: "a transcript")
+    monkeypatch.setattr(summarize_router, "summarize_text", fake_summarize)
+    job = create_job()
+
+    summarize_router.run_summarize_job(job.id, VALID_URL)
+
+    # only the final on_progress call's values should remain, since each
+    # update_job() overwrites the previous one
+    result = get_job(job.id)
+    assert result.status == JobStatus.DONE  # final update_job() call wins
+    assert result.progress_current == 3
+    assert result.progress_total == 3
+
+
 def test_worker_uses_fetched_transcript_as_summarizer_input(monkeypatch):
     monkeypatch.setattr(summarize_router, "fetch_transcript", lambda url: "raw transcript")
-    monkeypatch.setattr(summarize_router, "summarize_text", lambda text: f"summary of: {text}")
+    monkeypatch.setattr(summarize_router, "summarize_text", lambda text, on_progress: f"summary of: {text}")
     job = create_job()
 
     summarize_router.run_summarize_job(job.id, VALID_URL)
@@ -63,7 +84,7 @@ def test_worker_records_unavailable_transcript_as_failed(monkeypatch, exc):
 
 
 def test_worker_records_summarizer_failure_as_failed(monkeypatch):
-    def raise_exc(text):
+    def raise_exc(text, on_progress):
         raise OpenAIError("upstream exploded")
 
     monkeypatch.setattr(summarize_router, "fetch_transcript", lambda url: "a transcript")
