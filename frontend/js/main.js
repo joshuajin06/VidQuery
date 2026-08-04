@@ -54,14 +54,6 @@ async function pollUntilDone(jobId) {
           resolve("Summary retrieval failed");
         }
 
-        // TODO: this is the "still working" case (any status other than
-        // done/failed). If job.status === "summarizing_chunk" and
-        // job.progress_total is set, update some UI element with e.g.
-        // `Summarizing part ${job.progress_current} of ${job.progress_total}...`
-        // ui.js doesn't have an element for this yet -- you'll need to add
-        // one (id, e.g. "progress-msg") to index.html, grab it in ui.js the
-        // same way loading/errorMsg/etc are grabbed, and write a small
-        // showProgress(text) helper alongside showError/showSummary.
         if(job.status === "summarizing_chunk" && job.progress_total != null) {
           showProgress(`Summarizing part ${job.progress_current} of ${job.progress_total}`);
         }
