@@ -40,33 +40,6 @@ def delete_video_chunks(video_id):
 
 
 def insert_chunks(video_id, chunks):
-  """Insert timestamped, embedded chunks for a video.
-
-  Args:
-    video_id: str
-    chunks: list of dicts, each shaped like:
-      {
-        "text": str,
-        "start": float,
-        "end": float,
-        "embedding": list[float],  # from services.embeddings.embed_text(s)
-      }
-
-  TODO: implement this function.
-
-  Spec:
-    1. Get a connection.
-    2. For each chunk in chunks, run a parameterized INSERT:
-         INSERT INTO transcript_chunks (video_id, text, start_time, end_time, embedding)
-         VALUES (%s, %s, %s, %s, %s)
-       with params (video_id, chunk["text"], chunk["start"], chunk["end"], chunk["embedding"]).
-    3. Close the connection when done.
-
-  Hints:
-    - This is a straightforward loop + conn.execute(...) per chunk. Since
-      get_connection() has autocommit=True, each insert lands immediately —
-      no need to call conn.commit() yourself.
-  """
   conn = get_connection()
 
   for chunk in chunks:

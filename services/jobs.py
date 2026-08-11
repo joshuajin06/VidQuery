@@ -10,6 +10,8 @@ class JobStatus(str, Enum):
     FETCHING_TRANSCRIPT = "fetching_transcript"
     SUMMARIZING = "summarizing"
     SUMMARIZING_CHUNK = "summarizing_chunk"
+    EMBEDDING = "embedding"
+    INDEXING = "indexing"
     DONE = "done"
     FAILED = "failed"
 

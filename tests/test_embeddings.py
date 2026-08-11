@@ -1,49 +1,33 @@
-import numpy as np
 import pytest
 
 import services.embeddings as embeddings_service
-from services.embeddings import embed_text, embed_texts, get_model
+from services.embeddings import embed_text, embed_texts
 
 
-class FakeModel:
-    """Stand-in for SentenceTransformer: returns a deterministic vector per
-    text based on its length, so tests don't need to load real weights."""
+class FakeResponse:
+    """Stand-in for requests.Response: returns a deterministic vector per
+    text based on its length, so tests don't need to hit the real HF API."""
 
-    def __init__(self):
-        self.calls = []
+    def __init__(self, texts):
+        self._texts = texts
 
-    def encode(self, texts):
-        self.calls.append(texts)
-        return np.array([[float(len(t)), 0.0, 1.0] for t in texts])
+    def raise_for_status(self):
+        pass
 
-
-@pytest.fixture(autouse=True)
-def reset_model_cache(monkeypatch):
-    # get_model() caches into the module-level _model global; reset it before
-    # and after each test so tests don't leak state into each other.
-    monkeypatch.setattr(embeddings_service, "_model", None)
-    yield
-    monkeypatch.setattr(embeddings_service, "_model", None)
+    def json(self):
+        return [[float(len(t)), 0.0, 1.0] for t in self._texts]
 
 
-def test_get_model_returns_same_instance_across_calls(monkeypatch):
-    created = []
+def fake_post(captured_calls):
+    def post(url, headers, json):
+        captured_calls.append(json["inputs"])
+        return FakeResponse(json["inputs"])
 
-    def fake_constructor(name):
-        created.append(name)
-        return FakeModel()
-
-    monkeypatch.setattr(embeddings_service, "SentenceTransformer", fake_constructor)
-
-    first = get_model()
-    second = get_model()
-
-    assert first is second
-    assert created == [embeddings_service.MODEL_NAME]  # only constructed once
+    return post
 
 
-def test_embed_texts_returns_plain_lists_not_numpy(monkeypatch):
-    monkeypatch.setattr(embeddings_service, "SentenceTransformer", lambda name: FakeModel())
+def test_embed_texts_returns_plain_lists(monkeypatch):
+    monkeypatch.setattr(embeddings_service.requests, "post", fake_post([]))
 
     result = embed_texts(["hi", "hello there"])
 
@@ -53,32 +37,25 @@ def test_embed_texts_returns_plain_lists_not_numpy(monkeypatch):
 
 
 def test_embed_texts_preserves_input_order_and_count(monkeypatch):
-    monkeypatch.setattr(embeddings_service, "SentenceTransformer", lambda name: FakeModel())
+    monkeypatch.setattr(embeddings_service.requests, "post", fake_post([]))
 
     result = embed_texts(["a", "bb", "ccc"])
 
     assert len(result) == 3
-    assert [vec[0] for vec in result] == [1.0, 2.0, 3.0]  # FakeModel encodes length
+    assert [vec[0] for vec in result] == [1.0, 2.0, 3.0]  # length-based fake vector
 
 
-def test_embed_texts_uses_cached_model_not_a_new_one_each_call(monkeypatch):
-    instances = []
+def test_embed_texts_sends_all_inputs_in_one_request(monkeypatch):
+    calls = []
+    monkeypatch.setattr(embeddings_service.requests, "post", fake_post(calls))
 
-    def fake_constructor(name):
-        model = FakeModel()
-        instances.append(model)
-        return model
+    embed_texts(["first", "second"])
 
-    monkeypatch.setattr(embeddings_service, "SentenceTransformer", fake_constructor)
-
-    embed_texts(["first call"])
-    embed_texts(["second call"])
-
-    assert len(instances) == 1
+    assert calls == [["first", "second"]]
 
 
 def test_embed_text_returns_single_flat_vector(monkeypatch):
-    monkeypatch.setattr(embeddings_service, "SentenceTransformer", lambda name: FakeModel())
+    monkeypatch.setattr(embeddings_service.requests, "post", fake_post([]))
 
     result = embed_text("hello")
 
@@ -87,6 +64,21 @@ def test_embed_text_returns_single_flat_vector(monkeypatch):
 
 
 def test_embed_text_matches_embed_texts_single_element(monkeypatch):
-    monkeypatch.setattr(embeddings_service, "SentenceTransformer", lambda name: FakeModel())
+    monkeypatch.setattr(embeddings_service.requests, "post", fake_post([]))
 
     assert embed_text("hello") == embed_texts(["hello"])[0]
+
+
+def test_embed_texts_raises_on_http_error(monkeypatch):
+    class FailingResponse(FakeResponse):
+        def raise_for_status(self):
+            raise Exception("HF API error")
+
+    monkeypatch.setattr(
+        embeddings_service.requests,
+        "post",
+        lambda url, headers, json: FailingResponse(json["inputs"]),
+    )
+
+    with pytest.raises(Exception):
+        embed_texts(["hi"])
