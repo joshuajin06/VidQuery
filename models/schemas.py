@@ -7,6 +7,10 @@ class SummarizeRequest(BaseModel):
     url: str
 
 
+class IndexRequest(BaseModel):
+    url: str
+
+
 class JobCreatedResponse(BaseModel):
     job_id: str
 
