@@ -31,7 +31,7 @@ app.include_router(summarize_router)
 app.include_router(ingest_router)
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
   return {"message": "Hello World!"}
 
