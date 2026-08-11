@@ -12,9 +12,16 @@ def get_connection():
   return conn
 
 def init_schema():
+  # register_vector() (called by get_connection()) requires the vector type
+  # to already exist, so the extension must be created on a plain connection
+  # first — a fresh database has no extension yet, and get_connection()
+  # would fail before init_schema() ever got the chance to create it.
+  conn = psycopg.connect(DATABASE_URL, autocommit=True)
+  conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+  conn.close()
+
   conn = get_connection()
 
-  conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
   conn.execute(
       "CREATE TABLE IF NOT EXISTS transcript_chunks ("
       "id SERIAL PRIMARY KEY, "

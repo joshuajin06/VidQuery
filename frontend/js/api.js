@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8000";
+const API_BASE = "https://vidquery-qr6z.onrender.com";
 
 // SPEC — startSummarize(url)
 // - POSTs { url } to /summarize
