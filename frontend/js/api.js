@@ -27,6 +27,26 @@ async function startSummarize(url) {
   return data.job_id
 }
 
+// startSummarizeText(transcript)
+// - POSTs { transcript } to /summarize/text
+// - resolves to the job_id string on success (status 202)
+// - throws an Error with a useful message if the server rejects the transcript (422)
+async function startSummarizeText(transcript) {
+  const response = await fetch(`${API_BASE}/summarize/text`, {
+    method: "POST",
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ transcript })
+  });
+
+  const data = await response.json();
+
+  if(!response.ok) {
+    throw new Error(data.detail || "something went wrong")
+  }
+
+  return data.job_id
+}
+
 // SPEC — pollJob(jobId)
 // - GETs /summarize/{jobId}
 // - resolves to the parsed JSON body: { status, progress_current,

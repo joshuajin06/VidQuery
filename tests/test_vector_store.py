@@ -32,6 +32,10 @@ class FakeConnection:
 def fake_conn(monkeypatch):
     conn = FakeConnection()
     monkeypatch.setattr(vector_store_service, "get_connection", lambda: conn)
+    # init_schema() also opens a plain (non-register_vector) connection to
+    # create the extension before get_connection() is safe to call — route
+    # that through the same fake so tests stay hermetic (no real DB).
+    monkeypatch.setattr(vector_store_service.psycopg, "connect", lambda url, autocommit: conn)
     return conn
 
 

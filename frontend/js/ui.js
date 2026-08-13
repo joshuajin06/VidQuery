@@ -6,6 +6,40 @@ const summaryOutput = document.getElementById("summary-output");
 const loading = document.getElementById("loading");
 const progressMsg = document.getElementById("show-progress");
 
+// --- paste-URL vs paste-transcript mode toggle ---
+const modeUrlBtn = document.getElementById("mode-url-btn");
+const modeTextBtn = document.getElementById("mode-text-btn");
+const urlInputGroup = document.getElementById("url-input-group");
+const textInputGroup = document.getElementById("text-input-group");
+const transcriptInput = document.getElementById("transcript-input");
+const submitTextBtn = document.getElementById("submit-text-btn");
+
+function showUrlMode() {
+  modeUrlBtn.classList.add("active");
+  modeTextBtn.classList.remove("active");
+  urlInputGroup.classList.remove("hidden");
+  textInputGroup.classList.add("hidden");
+}
+
+function showTextMode() {
+  modeTextBtn.classList.add("active");
+  modeUrlBtn.classList.remove("active");
+  textInputGroup.classList.remove("hidden");
+  urlInputGroup.classList.add("hidden");
+}
+
+// --- examples dropdown ---
+const examplesToggle = document.getElementById("examples-toggle");
+const examplesMenu = document.getElementById("examples-menu");
+
+function toggleExamplesMenu() {
+  examplesMenu.classList.toggle("hidden");
+}
+
+function closeExamplesMenu() {
+  examplesMenu.classList.add("hidden");
+}
+
 function showLoading() {
   loading.classList.remove("hidden");
   resultSection.classList.add("hidden");

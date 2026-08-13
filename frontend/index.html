@@ -7,17 +7,45 @@
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body>
+    <nav class="navbar">
+      <span class="navbar-title">VidQuery</span>
+      <div class="examples-wrap">
+        <button id="examples-toggle" class="examples-toggle" type="button">
+          Try an example ▾
+        </button>
+        <div id="examples-menu" class="examples-menu hidden"></div>
+      </div>
+    </nav>
+
     <div class="container">
       <h1>YouTube Summarizer</h1>
-      <p class="subtitle">Paste a YouTube URL to get an AI-generated summary</p>
+      <p class="subtitle">Paste a YouTube URL, or paste a transcript directly, to get an AI-generated summary</p>
 
-      <div class="input-group">
+      <div class="mode-toggle">
+        <button id="mode-url-btn" class="mode-btn active" type="button">Paste URL</button>
+        <button id="mode-text-btn" class="mode-btn" type="button">Paste transcript</button>
+      </div>
+
+      <div class="input-group" id="url-input-group">
         <input
           type="text"
           id="url-input"
           placeholder="https://www.youtube.com/watch?v=..."
         />
         <button id="submit-btn">Summarize</button>
+      </div>
+      <p class="hint">
+        Live fetching is blocked by YouTube's bot detection on most cloud hosts — it works
+        reliably when run locally. Try an example above, or paste a transcript directly.
+      </p>
+
+      <div class="input-group textarea-group hidden" id="text-input-group">
+        <textarea
+          id="transcript-input"
+          placeholder="Paste a transcript here..."
+          rows="8"
+        ></textarea>
+        <button id="submit-text-btn">Summarize</button>
       </div>
 
       <div id="error-msg" class="error hidden"></div>
@@ -35,6 +63,7 @@
 
     <script src="js/api.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/examples.js"></script>
     <script src="js/main.js"></script>
   </body>
 </html>

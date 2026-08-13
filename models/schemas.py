@@ -1,10 +1,14 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from services.jobs import JobStatus
 
 
 class SummarizeRequest(BaseModel):
     url: str
+
+
+class SummarizeTextRequest(BaseModel):
+    transcript: str = Field(min_length=1)
 
 
 class IndexRequest(BaseModel):
